@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Drill Advisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#08080f; --surface:#111118; --card:#181825; --border:#252535;
+  --accent:#e8b84b; --blue:#4b7be8; --green:#4be87a; --red:#e84b6e;
+  --purple:#a64be8; --text:#e8e8f4; --muted:#666680;
+  --safe-bottom: env(safe-area-inset-bottom, 16px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overscroll-behavior:none}
+body{padding-bottom:calc(72px + var(--safe-bottom))}
+
+/* ── NAV TABS ── */
+.nav{position:fixed;bottom:0;left:0;right:0;background:#0e0e1a;border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:var(--safe-bottom)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;font-size:10px;color:var(--muted);font-weight:500;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:color .15s;border:none;background:none}
+.nav-btn.active{color:var(--accent)}
+.nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ── PAGES ── */
+.page{display:none;padding:0 0 8px}
+.page.active{display:block}
+
+/* ── HEADER ── */
+.header{background:linear-gradient(135deg,#0d0d1c,#14102a);border-bottom:1px solid var(--border);padding:14px 16px 12px;position:sticky;top:0;z-index:100}
+.header-row{display:flex;align-items:center;gap:10px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--accent);line-height:1}
+.logo-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px}
+
+/* ── SECTIONS ── */
+.section{padding:14px 16px 0}
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px;font-weight:600}
+
+/* ── PILLS ── */
+.pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:2px}
+.pill{padding:7px 14px;border-radius:100px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;font-weight:500;white-space:nowrap}
+.pill:active{transform:scale(.97)}
+.pill.on-a{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700}
+.pill.on-b{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+
+/* ── BALL DIAGRAM ── */
+.ball-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin:10px 16px 0;display:flex;flex-direction:column;align-items:center;gap:10px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%}
+
+/* ── RESULT CARD ── */
+.result-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin:10px 16px 0}
+.r-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent);letter-spacing:1px;margin-bottom:2px}
+.r-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.badge-g{background:rgba(75,232,122,.12);color:var(--green);border:1px solid rgba(75,232,122,.3)}
+.badge-o{background:rgba(232,184,75,.12);color:var(--accent);border:1px solid rgba(232,184,75,.3)}
+.badge-b{background:rgba(232,75,110,.12);color:var(--red);border:1px solid rgba(232,75,110,.3)}
+.stat{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.stat:last-child{border-bottom:none}
+.stat-l{color:var(--muted)}
+.stat-v{font-weight:600}
+.meters{margin-top:14px}
+.m-row{margin-bottom:10px}
+.m-head{display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px}
+.m-label{color:var(--muted)}
+.m-val{font-weight:600}
+.track{height:5px;background:var(--border);border-radius:100px;overflow:hidden}
+.fill{height:100%;border-radius:100px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+
+/* ── LANE CANVAS ── */
+.lane-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px;margin:10px 16px 0}
+canvas#lc{width:100%;border-radius:6px}
+
+/* ── TIP BOX ── */
+.tip{background:linear-gradient(135deg,rgba(232,184,75,.07),rgba(75,123,232,.07));border:1px solid rgba(232,184,75,.2);border-radius:16px;padding:14px;margin:10px 16px 0;font-size:12px;line-height:1.65;color:var(--text)}
+.tip strong{color:var(--accent)}
+
+/* ── BALL DATABASE PAGE ── */
+.search-wrap{padding:12px 16px 0}
+.search-box{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
+.search-box::placeholder{color:var(--muted)}
+.search-box:focus{border-color:var(--blue)}
+.filter-row{display:flex;gap:6px;padding:10px 16px 0;overflow-x:auto;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.f-btn{padding:6px 12px;border-radius:100px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;font-weight:500;flex-shrink:0;transition:all .15s}
+.f-btn.active{background:var(--purple);border-color:var(--purple);color:#fff;font-weight:700}
+.ball-list{padding:8px 16px 0}
+.ball-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.ball-item:active{border-color:var(--accent)}
+.bi-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.bi-name{font-weight:700;font-size:14px}
+.bi-oil{font-size:10px;padding:3px 8px;border-radius:100px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.oil-heavy{background:rgba(75,123,232,.15);color:var(--blue)}
+.oil-med-heavy{background:rgba(75,232,122,.12);color:var(--green)}
+.oil-medium{background:rgba(232,184,75,.12);color:var(--accent)}
+.oil-light{background:rgba(232,75,110,.12);color:var(--red)}
+.bi-specs{display:flex;gap:12px;flex-wrap:wrap}
+.bi-spec{font-size:11px;color:var(--muted)}
+.bi-spec span{color:var(--text);font-weight:600}
+.bi-series{font-size:11px;color:var(--purple);font-weight:600;margin-top:4px}
+
+/* ── BALL DETAIL MODAL ── */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;flex-direction:column}
+.modal.open{display:flex}
+.modal-inner{background:var(--surface);border-radius:20px 20px 0 0;margin-top:auto;max-height:88vh;overflow-y:auto;padding:20px 16px calc(20px + var(--safe-bottom))}
+.modal-drag{width:40px;height:4px;background:var(--border);border-radius:100px;margin:0 auto 16px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);letter-spacing:1px;margin-bottom:2px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.spec-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.spec-box-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.spec-box-val{font-size:16px;font-weight:700}
+.desc-text{font-size:13px;line-height:1.7;color:#c0c0d8;margin-bottom:16px}
+.close-btn{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
+
+/* ── OIL PATTERN LANE GRID ── */
+.oil-lanes-title{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;font-weight:600}
+.oil-lanes-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.oil-lane-wrap{background:var(--card);border-radius:12px;overflow:hidden;position:relative;cursor:pointer;border:2px solid transparent;transition:border-color .2s}
+.oil-lane-wrap.best{border-color:var(--green)}
+.oil-lane-wrap.ok-match{border-color:var(--accent)}
+.oil-lane-wrap.bad-match{border-color:var(--red);opacity:.65}
+.oil-lane-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);padding:4px 6px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center}
+.oil-lane-badge{position:absolute;top:4px;right:4px;font-size:8px;font-weight:700;padding:2px 5px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}
+.olb-good{background:rgba(75,232,122,.25);color:var(--green)}
+.olb-ok{background:rgba(232,184,75,.25);color:var(--accent)}
+.olb-bad{background:rgba(232,75,110,.25);color:var(--red)}
+.drill-recs{margin-bottom:16px}
+.drill-recs-title{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;font-weight:600}
+.drill-rec{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:12px;line-height:1.5}
+.drill-rec strong{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: LAYOUT ADVISOR -->
+<div class="page active" id="p-advisor">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <div class="logo">⚫ Drill Advisor</div>
+        <div class="logo-sub">Layout × Oil Pattern Guide</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Drilling Layout</div>
+    <div class="pills" id="layoutGroup">
+      <button class="pill on-a" data-val="pin-up">Pin Up</button>
+      <button class="pill" data-val="pin-down">Pin Down</button>
+      <button class="pill" data-val="leverage">Leverage</button>
+      <button class="pill" data-val="control">Control</button>
+      <button class="pill" data-val="strong">Strong Angle</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Oil Pattern</div>
+    <div class="pills" id="oilGroup">
+      <button class="pill on-b" data-val="short">Short 33–37ft</button>
+      <button class="pill" data-val="medium">Medium 38–42ft</button>
+      <button class="pill" data-val="long">Long 43–47ft</button>
+      <button class="pill" data-val="sport">Sport / Flat</button>
+    </div>
+  </div>
+
+  <div class="section"><div class="section-label">Ball Diagram</div></div>
+  <div class="ball-card">
+    <canvas id="bc" width="210" height="210"></canvas>
+    <div class="legend">
+      <div class="leg"><div class="dot" style="background:#e8b84b"></div>Pin</div>
+      <div class="leg"><div class="dot" style="background:#4b7be8"></div>CG</div>
+      <div class="leg"><div class="dot" style="background:#e84b6e"></div>PAP</div>
+      <div class="leg"><div class="dot" style="background:#4be87a"></div>MB</div>
+    </div>
+  </div>
+
+  <div class="section"><div class="section-label">Analysis</div></div>
+  <div class="result-card">
+    <div id="badge" class="badge badge-g">Excellent Match</div>
+    <div class="r-title" id="rTitle">Pin Up — Short Oil</div>
+    <div class="r-sub" id="rSub">Arc motion, medium-high flare</div>
+    <div class="stat"><span class="stat-l">Pin-to-PAP</span><span class="stat-v" id="sPAP">3–4"</span></div>
+    <div class="stat"><span class="stat-l">VAL Angle</span><span class="stat-v" id="sVAL">45°</span></div>
+    <div class="stat"><span class="stat-l">Flare</span><span class="stat-v" id="sFlare">Medium-High</span></div>
+    <div class="stat"><span class="stat-l">Motion Shape</span><span class="stat-v" id="sShape">Arc</span></div>
+    <div class="meters">
+      <div class="m-row"><div class="m-head"><span class="m-label">Length</span><span class="m-val" id="mL">6/10</span></div><div class="track"><div class="fill" id="mLb" style="width:60%;background:var(--blue)"></div></div></div>
+      <div class="m-row"><div class="m-head"><span class="m-label">Backend Reaction</span><span class="m-val" id="mR">8/10</span></div><div class="track"><div class="fill" id="mRb" style="width:80%;background:var(--accent)"></div></div></div>
+      <div class="m-row"><div class="m-head"><span class="m-label">Forgiveness</span><span class="m-val" id="mF">6/10</span></div><div class="track"><div class="fill" id="mFb" style="width:60%;background:var(--green)"></div></div></div>
+      <div class="m-row"><div class="m-head"><span class="m-label">Hook Potential</span><span class="m-val" id="mH">7/10</span></div><div class="track"><div class="fill" id="mHb" style="width:70%;background:var(--red)"></div></div></div>
+    </div>
+  </div>
+
+  <div class="section"><div class="section-label">Lane View</div></div>
+  <div class="lane-card"><canvas id="lc"></canvas></div>
+
+  <div class="tip" id="tip"><strong>Pin Up on Short Oil:</strong> Earlier roll gives you a smooth arc. On short patterns this creates a controllable backend without overreacting at the friction.</div>
+</div>
+
+<!-- PAGE 2: MOTIV BALL DATABASE -->
+<div class="page" id="p-balls">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <div class="logo">🎳 Motiv Balls</div>
+        <div class="logo-sub">Full Specs Database</div>
+      </div>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <input class="search-box" id="searchBox" type="text" placeholder="Search ball name, core, coverstock…">
+  </div>
+  <div class="filter-row" id="filterRow">
+    <button class="f-btn active" data-oil="all">All</button>
+    <button class="f-btn" data-oil="heavy">Heavy Oil</button>
+    <button class="f-btn" data-oil="med-heavy">Med-Heavy</button>
+    <button class="f-btn" data-oil="medium">Medium</button>
+    <button class="f-btn" data-oil="light">Light / Dry</button>
+  </div>
+  <div class="ball-list" id="ballList"></div>
+</div>
+
+<!-- BALL DETAIL MODAL -->
+<div class="modal" id="modal">
+  <div style="flex:1" id="modalBg"></div>
+  <div class="modal-inner">
+    <div class="modal-drag"></div>
+    <div id="modalOilBadge" class="bi-oil" style="display:inline-block;margin-bottom:10px"></div>
+    <div class="modal-title" id="mName"></div>
+    <div class="modal-sub" id="mSeries"></div>
+    <div class="spec-grid">
+      <div class="spec-box"><div class="spec-box-label">RG</div><div class="spec-box-val" id="mRG" style="color:var(--blue)"></div></div>
+      <div class="spec-box"><div class="spec-box-label">Differential</div><div class="spec-box-val" id="mDiff" style="color:var(--accent)"></div></div>
+      <div class="spec-box"><div class="spec-box-label">Int. Diff</div><div class="spec-box-val" id="mIntDiff" style="color:var(--purple)"></div></div>
+      <div class="spec-box"><div class="spec-box-label">Core Type</div><div class="spec-box-val" id="mCore" style="font-size:12px;color:var(--green)"></div></div>
+      <div class="spec-box"><div class="spec-box-label">Coverstock</div><div class="spec-box-val" id="mCover" style="font-size:11px;color:var(--text)"></div></div>
+      <div class="spec-box"><div class="spec-box-label">Finish</div><div class="spec-box-val" id="mFinish" style="font-size:11px;color:var(--text)"></div></div>
+    </div>
+    <!-- OIL PATTERN LANE VISUALIZATION -->
+    <div class="oil-lanes-title">Ball Motion on Each Oil Pattern</div>
+    <div class="oil-lanes-grid" id="oilLanesGrid">
+      <div class="oil-lane-wrap" id="olw-short">
+        <canvas id="olc-short" height="90"></canvas>
+        <div class="oil-lane-badge" id="olb-short"></div>
+        <div class="oil-lane-label" id="oll-short">Short 33–37ft</div>
+      </div>
+      <div class="oil-lane-wrap" id="olw-medium">
+        <canvas id="olc-medium" height="90"></canvas>
+        <div class="oil-lane-badge" id="olb-medium"></div>
+        <div class="oil-lane-label" id="oll-medium">Medium 38–42ft</div>
+      </div>
+      <div class="oil-lane-wrap" id="olw-long">
+        <canvas id="olc-long" height="90"></canvas>
+        <div class="oil-lane-badge" id="olb-long"></div>
+        <div class="oil-lane-label" id="oll-long">Long 43–47ft</div>
+      </div>
+      <div class="oil-lane-wrap" id="olw-sport">
+        <canvas id="olc-sport" height="90"></canvas>
+        <div class="oil-lane-badge" id="olb-sport"></div>
+        <div class="oil-lane-label" id="oll-sport">Sport / Flat</div>
+      </div>
+    </div>
+
+    <div class="drill-recs">
+      <div class="drill-recs-title">Recommended Layouts</div>
+      <div id="mLayouts"></div>
+    </div>
+    <div class="desc-text" id="mDesc"></div>
+    <button class="close-btn" id="closeModal">Close</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav">
+  <button class="nav-btn active" id="nav-advisor" onclick="showPage('advisor')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="15" x2="12" y2="16"/></svg>
+    Advisor
+  </button>
+  <button class="nav-btn" id="nav-balls" onclick="showPage('balls')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12 q2-4 4 0"/><path d="M12 9 q4 2 0 4"/></svg>
+    Motiv Balls
+  </button>
+</div>
+
+<script>
+// ── LAYOUT DATA ──────────────────────────────────────────────────────────────
+const layouts = {
+  "pin-up":{label:"Pin Up",sub:"Pin above fingers — arc motion, earlier roll",pinPAP:"3–4\"",val:"45°",flare:"Medium-High",shape:"Arc / Smooth",m:{length:5,reaction:8,forgive:7,hook:7},pa:100,pd:.52,ca:220,cd:.18,ma:310,md:.45,
+    tips:{short:"Pin Up on Short Oil: Earlier roll gives a smooth, controllable arc. The ball reads friction without overshooting. Great for house shots and controllable backends.",medium:"Pin Up on Medium Oil: Balanced arc motion reads the mid-lane well. Versatile and predictable — a classic all-around choice for medium patterns.",long:"Pin Up on Long Oil: Harder to generate enough motion downlane. May need more surface or a stronger core coverstock to get enough backend energy.",sport:"Pin Up on Sport: Moderate shape with smooth arc. Helps when the pattern pushes outside — lower risk of overreacting on tight sport conditions."},
+    match:{short:"good",medium:"good",long:"ok",sport:"ok"}},
+  "pin-down":{label:"Pin Down",sub:"Pin below fingers — skid-snap, angular backend",pinPAP:"2–3\"",val:"30°",flare:"Low-Medium",shape:"Angular / Skid-Snap",m:{length:8,reaction:9,forgive:4,hook:8},pa:260,pd:.50,ca:80,cd:.20,ma:150,md:.42,
+    tips:{short:"Pin Down on Short Oil: You'll get length through the heads, but the angular snap can overshoot on dry backends. Play tighter angles to stay in control.",medium:"Pin Down on Medium Oil: Skid-flip shape through the front and a strong angular move downlane. Classic tournament layout.",long:"Pin Down on Long Oil: The skid-snap shape is ideal — ball skids through oil and snaps at the dry. Classic long-pattern choice.",sport:"Pin Down on Sport: Controlled skid-snap gives predictability. Lower flare is forgiving on tight sport patterns where consistency is key."},
+    match:{short:"ok",medium:"good",long:"good",sport:"good"}},
+  "leverage":{label:"Leverage",sub:"MB near PAP — maximum flare, strong backend",pinPAP:"4–5\"",val:"60–70°",flare:"Maximum",shape:"Strong Arc",m:{length:4,reaction:10,forgive:3,hook:10},pa:130,pd:.56,ca:290,cd:.22,ma:50,md:.48,
+    tips:{short:"Leverage on Short Oil: Too much energy at the breakpoint — the backend will be violent and unpredictable. Consider flatter layouts for short conditions.",medium:"Leverage on Medium Oil: Strong mid-lane read when oil volume is high. Good when you need to power through the middle and generate angle.",long:"Leverage on Long Oil: Strong backend motion when you need it most. Flare pushes through heavy oil and delivers maximum entry angle.",sport:"Leverage on Sport: Too much ball motion — sport patterns punish mistakes and over-reacting at the breakpoint will spray misses. Avoid."},
+    match:{short:"bad",medium:"ok",long:"good",sport:"bad"}},
+  "control":{label:"Control",sub:"MB away from PAP — smooth, predictable roll",pinPAP:"3–4\"",val:"20–30°",flare:"Low",shape:"Smooth / Rolling",m:{length:7,reaction:5,forgive:9,hook:5},pa:80,pd:.48,ca:200,cd:.15,ma:340,md:.50,
+    tips:{short:"Control on Short Oil: Predictable smooth roll makes navigation easy. Low flare means consistent reads across the lane — excellent choice.",medium:"Control on Medium Oil: Smooth and versatile. Works best when medium patterns are hooking a lot — shape without burning the backend.",long:"Control on Long Oil: Underpowered for most long patterns — ball will likely not finish strong enough. Better with a stronger core coverstock.",sport:"Control on Sport: Highly recommended — predictable smooth roll matches sport pattern demands. Gives shape without overreaction."},
+    match:{short:"good",medium:"ok",long:"bad",sport:"good"}},
+  "strong":{label:"Strong Angle",sub:"High VAL + leverage — aggressive, violent reaction",pinPAP:"5–6\"",val:"70–80°",flare:"Maximum",shape:"Angular / Violent",m:{length:3,reaction:10,forgive:2,hook:10},pa:160,pd:.60,ca:10,cd:.25,ma:70,md:.52,
+    tips:{short:"Strong Angle on Short Oil: Backend will be too aggressive. You'll burn energy too early, leading to inconsistent breakpoint shape — not recommended.",medium:"Strong Angle on Medium Oil: High-risk, high-reward. Works if you can play deep inside and need a violent angle change at the breakpoint.",long:"Strong Angle on Long Oil: Maximum entry angle helps carry on longer, tougher patterns. Requires precision but delivers when right.",sport:"Strong Angle on Sport: Very difficult to control. Sport patterns require precision; aggressive layouts create too much margin for error."},
+    match:{short:"bad",medium:"ok",long:"good",sport:"bad"}}
+};
+
+const oils = {
+  short:{label:"Short (33–37ft)",len:.42,color:"#4b7be8"},
+  medium:{label:"Medium (38–42ft)",len:.60,color:"#4be87a"},
+  long:{label:"Long (43–47ft)",len:.78,color:"#e8b84b"},
+  sport:{label:"Sport / Flat",len:.55,color:"#e84b6e"}
+};
+
+// ── MOTIV BALL DATABASE ──────────────────────────────────────────────────────
+const motivBalls = [
+  // HEAVY OIL
+  {name:"Crimson Jackal",series:"Jackal Series",oil:"heavy",rg:"2.48",diff:".058",intDiff:".018",core:"Predator V2 Asymmetric",cover:"Coercion HFS Solid",finish:"3000 Grit LSS",desc:"The Crimson Jackal is the strongest ball in the Jackal line. The Predator V2 core pairs with the Coercion HFS coverstock to deliver maximum traction in heavy oil. Ideal for the highest volume patterns and fresh conditions.",layouts:[{name:"Strong Hook",spec:"55° × 4\" × 40°",desc:"Maximum hook and flare — use on very heavy oil"},{name:"Control Layout",spec:"65° × 5\" × 55°",desc:"Smoother shape, better control on medium-heavy"}]},
+  {name:"Apex Jackal",series:"Jackal Series",oil:"heavy",rg:"2.52",diff:".064",intDiff:".014",core:"Apex Predator Asymmetric",cover:"Propulsion MXV Pearl",finish:"5000 Grit LSP",desc:"The most angular Jackal ever. The Apex Predator core features the highest RG of any Predator core, giving easier length and more stored energy. Propulsion MXV Pearl delivers explosive backend motion in heavy oil.",layouts:[{name:"Benchmark",spec:"70° × 4\" × 40°",desc:"Angular but forgiving — balanced for most bowlers"},{name:"Strong",spec:"55° × 4.5\" × 35°",desc:"More flare and earlier roll for max oil handling"}]},
+  {name:"Jackal Ghost",series:"Jackal Series",oil:"heavy",rg:"2.49",diff:".058",intDiff:".018",core:"Predator V2 Asymmetric",cover:"Propulsion MXV Solid",finish:"4000 Grit LSS",desc:"One of the most beloved Motiv balls ever made. The Jackal Ghost is known for reliability, versatility, and its ability to be used on a wide range of heavy to medium-heavy conditions. A staple in any serious arsenal.",layouts:[{name:"Versatile",spec:"60° × 4.5\" × 40°",desc:"Balanced reaction for house and tournament use"},{name:"Control Heavy",spec:"70° × 5\" × 50°",desc:"Smoother shape for when oil is very heavy"}]},
+  {name:"Jackal ExJ Hybrid",series:"Jackal Series (Limited)",oil:"heavy",rg:"2.49",diff:".058",intDiff:".018",core:"Predator V2 Asymmetric",cover:"Propulsion HV Hybrid",finish:"4000 Grit LSS",desc:"Limited edition hybrid Jackal. Combines the strength of the Predator V2 core with a hybrid coverstock that offers a blend of traction and angularity. Fills the gap between solid and pearl Jackal options.",layouts:[{name:"Benchmark",spec:"65° × 4.5\" × 45°",desc:"Best versatility for this hybrid ball"},{name:"Angular",spec:"55° × 4\" × 35°",desc:"More angle for medium-heavy volume"}]},
+  {name:"Jackal Onyx",series:"Jackal Series",oil:"heavy",rg:"2.49",diff:".058",intDiff:".018",core:"Predator V2 Asymmetric",cover:"Coercion MXS Duramax",finish:"3000 Grit LSS",desc:"The Jackal Onyx features the Duramax additive in the Coercion MXS coverstock, which maintains its texture longer than standard covers. Designed for the bowler who needs maximum traction and durability in heavy oil.",layouts:[{name:"Strong Benchmark",spec:"55° × 4\" × 35°",desc:"Maximum traction and hook for heavy conditions"},{name:"Control",spec:"70° × 5\" × 50°",desc:"Slower, smoother shape for fresh heavy oil"}]},
+  {name:"Raptor Reign",series:"Raptor Series",oil:"heavy",rg:"2.49",diff:".053",intDiff:"—",core:"Affliction V2 Symmetric",cover:"Coercion MXS Solid",finish:"3000 Grit LSS",desc:"Motiv's heavy-oil symmetric powerhouse. The Affliction V2 symmetric core pairs with the Coercion MXS coverstock to deliver strong, controllable motion in heavy oil. Great option for rev-dominant players who struggle with asymmetric heavy oil balls.",layouts:[{name:"Aggressive",spec:"50° × 3.5\" × 30°",desc:"Maximum flare and early roll for heaviest oil"},{name:"Benchmark",spec:"60° × 4\" × 40°",desc:"Balanced motion for most heavy conditions"}]},
+  {name:"Subzero Forge",series:"Forge Series",oil:"heavy",rg:"2.47",diff:".055",intDiff:"—",core:"Detonator Symmetric",cover:"Leverage MXC Solid Duramax",finish:"3000 Grit LSS",desc:"Built around the proven Detonator core with the Duramax-enhanced Leverage MXC coverstock. Delivers controlled, predictable heavy oil motion. A favorite for speed-dominant and balanced players on high-volume fresh patterns.",layouts:[{name:"Control Heavy",spec:"55° × 4\" × 30°",desc:"Early, strong rolling shape for heavy fresh oil"},{name:"Versatile",spec:"65° × 4.5\" × 45°",desc:"More forgiving for broader conditions"}]},
+  // MEDIUM-HEAVY OIL
+  {name:"Evoke Hysteria",series:"Evoke Series",oil:"med-heavy",rg:"2.50",diff:".048",intDiff:".013",core:"Overload Asymmetric",cover:"Propulsion MXV Pearl",finish:"5000 Grit LSP",desc:"The Overload core is uniquely tunable — drillers can raise or lower the differential to match the bowler's style. Combined with the Propulsion MXV Pearl, the Evoke Hysteria delivers a devastating yet controllable angle on medium-heavy oil.",layouts:[{name:"Angular",spec:"60° × 4\" × 40°",desc:"Standard angular shape for medium-heavy patterns"},{name:"Rev-Dominant Control",spec:"75° × 5\" × 60°",desc:"Lower diff layout for rev-dominant control"}]},
+  {name:"Evoke Mayhem",series:"Evoke Series",oil:"med-heavy",rg:"2.50",diff:".048",intDiff:".013",core:"Overload Asymmetric",cover:"Propulsion MXV Solid",finish:"3000 Grit LSS",desc:"The solid-coverstock complement to the Evoke Hysteria. The same tunable Overload core now wrapped in a solid reactive cover for more traction and a smoother motion on medium-heavy conditions.",layouts:[{name:"Benchmark",spec:"60° × 4.5\" × 45°",desc:"Smooth, controllable benchmark shape"},{name:"Strong",spec:"50° × 4\" × 30°",desc:"More traction and hook for higher volumes"}]},
+  {name:"Steel Forge",series:"Forge Series",oil:"med-heavy",rg:"2.50",diff:".052",intDiff:"—",core:"Detonator Symmetric",cover:"Propulsion MXV Pearl",finish:"5000 Grit LSP",desc:"Born from the Evoke Hysteria's pearl cover, the Steel Forge pairs the Detonator symmetric core with Propulsion MXV Pearl for angular backend motion. Creates strong angle without the asymmetric complexity.",layouts:[{name:"Angular Benchmark",spec:"65° × 4\" × 45°",desc:"Length with strong angular backend"},{name:"Control Shape",spec:"75° × 5\" × 55°",desc:"Smoother, more controlled arc on medium-heavy"}]},
+  {name:"Nebula",series:"Nebula Series",oil:"med-heavy",rg:"2.50",diff:".045",intDiff:".012",core:"Hadron Symmetric",cover:"Propulsion HV Pearl",finish:"5000 Grit LSP",desc:"The Nebula features the new Hadron dual-density symmetric core — low RG, medium-high differential. Delivers controlled angle and clean front-end motion for medium-heavy patterns.",layouts:[{name:"Standard",spec:"65° × 4\" × 45°",desc:"Clean front with angular backend"},{name:"Weaker",spec:"75° × 5\" × 55°",desc:"Smoother shape for fresher conditions"}]},
+  {name:"Primal Ghost",series:"Primal Series",oil:"med-heavy",rg:"2.51",diff:".047",intDiff:"—",core:"Impulse V2 Symmetric",cover:"Coercion HFS Solid",finish:"3000 Grit LSS",desc:"A fusion of the Primal and Ghost lines. The Impulse V2 symmetric core paired with the Coercion HFS Solid creates a ball with great length, traction, and continuation. Predictable and powerful on medium-heavy oil.",layouts:[{name:"Benchmark",spec:"60° × 4\" × 40°",desc:"Balanced traction and shape for medium-heavy"},{name:"Strong",spec:"50° × 3.5\" × 30°",desc:"More hook for higher volume conditions"}]},
+  // MEDIUM OIL
+  {name:"Venom Shock",series:"Venom Series",oil:"medium",rg:"2.56",diff:".039",intDiff:".009",core:"Pride Asymmetric (low diff)",cover:"Venom Shock Solid Reactive",finish:"4000 Grit LSS",desc:"The classic Motiv benchmark ball. The Venom Shock is known as the most versatile ball in the lineup — usable by low rev, high rev, and speed-dominant players. The gold standard for medium oil.",layouts:[{name:"Benchmark",spec:"65° × 4.5\" × 45°",desc:"The definitive medium oil benchmark layout"},{name:"Angular",spec:"55° × 4\" × 35°",desc:"Adds more angle for medium-heavy conditions"}]},
+  {name:"Black Venom",series:"Venom Series",oil:"medium",rg:"2.63",diff:".020",intDiff:".007",core:"Gear APG Asymmetric",cover:"Leverage MFS Solid Reactive",finish:"4000 Grit LSS",desc:"Ideal benchmark ball for rev-dominant players. The low differential Gear APG core is uniquely suited for high rev players who need control. Smooth, consistent motion for medium to medium-light conditions.",layouts:[{name:"Rev-Dom Benchmark",spec:"70° × 4.5\" × 55°",desc:"Smooth controllable shape for rev-dominant"},{name:"More Hook",spec:"55° × 4\" × 40°",desc:"Opens up more motion for lighter conditions"}]},
+  {name:"Coral Venom",series:"Venom Series",oil:"medium",rg:"2.57",diff:".038",intDiff:".008",core:"Pride Asymmetric",cover:"Leverage MFS Pearl",finish:"5000 Grit LSP",desc:"The pearl version of the Venom line. The Coral Venom delivers cleaner front-end motion and a strong angular backend, making it ideal for medium conditions and slightly lighter oil volumes.",layouts:[{name:"Benchmark",spec:"65° × 4.5\" × 45°",desc:"Clean length with defined backend reaction"},{name:"Dry Lanes",spec:"75° × 5\" × 55°",desc:"Smoother shape on drier medium conditions"}]},
+  {name:"Pride Dynasty",series:"Pride Series",oil:"medium",rg:"2.52",diff:".043",intDiff:".011",core:"Pride Asymmetric",cover:"Coercion HFS Solid",finish:"4000 Grit LSS",desc:"The strongest Pride to date. The Pride Dynasty brings a powerful solid coverstock together with the Pride asymmetric core for an angular yet controllable shape on medium to medium-heavy conditions.",layouts:[{name:"Medium Benchmark",spec:"60° × 4\" × 40°",desc:"Smooth, strong motion for medium oil"},{name:"Heavier Oil",spec:"50° × 3.5\" × 30°",desc:"More traction and flare for medium-heavy"}]},
+  {name:"Pride Liberty",series:"Pride Series",oil:"medium",rg:"2.52",diff:".042",intDiff:".010",core:"Pride Asymmetric",cover:"Leverage MFS Hybrid",finish:"4000 Grit LSS",desc:"The hybrid-cover Pride option. Sits between the solid Pride Dynasty and pearl options in the line, offering a versatile blend of traction and backend angularity for medium oil patterns.",layouts:[{name:"Versatile",spec:"65° × 4.5\" × 45°",desc:"Versatile layout for the widest range of medium conditions"},{name:"Angular",spec:"55° × 4\" × 35°",desc:"More defined backend for when you need angle"}]},
+  {name:"Raptor Rush",series:"Raptor Series",oil:"medium",rg:"2.51",diff:".046",intDiff:"—",core:"Affliction V2 Symmetric",cover:"Leverage MXC Pearl",finish:"5000 Grit LSP",desc:"The pearl complement to the Raptor Reign. The Affliction V2 symmetric core paired with a pearl cover delivers angular backend motion on medium oil. Sleek, powerful, and highly versatile.",layouts:[{name:"Angular Shape",spec:"65° × 4\" × 45°",desc:"Clean length and strong angular backend"},{name:"Controlled",spec:"75° × 5\" × 55°",desc:"Smoother shape on medium conditions"}]},
+  {name:"Supra Clutch",series:"Supra Series",oil:"medium",rg:"2.55",diff:".040",intDiff:"—",core:"Torx V2 Symmetric",cover:"Turmoil MFS Pearl",finish:"5000 Grit LSP",desc:"The Supra Clutch upgrades the Supra line with a stronger pearl coverstock. The Torx V2 symmetric core provides consistent motion on medium-dry conditions. A trusted benchmark option for the middle of any arsenal.",layouts:[{name:"Medium Benchmark",spec:"65° × 4.5\" × 45°",desc:"Clean, angular shape for medium oil"},{name:"Drier Conditions",spec:"75° × 5\" × 55°",desc:"Smoother arc on medium-dry conditions"}]},
+  // LIGHT / DRY OIL
+  {name:"Shadow Tank",series:"Tank Series",oil:"light",rg:"2.57",diff:".035",intDiff:"—",core:"Flux Symmetric",cover:"Frixion M7 Pearl MCP",finish:"5000 Grit LSP",desc:"Built for control on short and tricky patterns. The Flux symmetric core and Microcell Polymer technology provide smooth, predictable motion that never jumps off the dry. Perfect for sport patterns and light oil.",layouts:[{name:"Control",spec:"70° × 5\" × 55°",desc:"Smooth arc for maximum control on dry conditions"},{name:"More Shape",spec:"60° × 4.5\" × 45°",desc:"Adds slight more angle while staying controlled"}]},
+  {name:"Primal Shock",series:"Primal Series",oil:"light",rg:"2.53",diff:".047",intDiff:"—",core:"Impulse V2 Symmetric",cover:"Turmoil XP3 Pearl",finish:"5000 Grit LSP",desc:"Angular backend ball for medium to dry conditions. The Impulse V2 symmetric core paired with the Turmoil XP3 Pearl creates clean length and a sharp direction change at the breakpoint.",layouts:[{name:"Angular",spec:"60° × 4\" × 40°",desc:"Strong angular shape on medium-dry lanes"},{name:"Dry Control",spec:"70° × 5\" × 50°",desc:"Longer, smoother arc for very dry conditions"}]},
+  {name:"Top Thrill Hybrid",series:"Top Thrill Series",oil:"light",rg:"2.58",diff:".040",intDiff:"—",core:"Halogen Symmetric",cover:"Turmoil XP3 Hybrid",finish:"5000 Grit LSP",desc:"The Halogen core with 42% increased differential provides more flare potential and layout flexibility than its predecessor. The Turmoil XP3 Hybrid cover creates the perfect mix of traction and angular backend shape.",layouts:[{name:"Benchmark Dry",spec:"65° × 4.5\" × 45°",desc:"Versatile layout for medium-dry conditions"},{name:"More Angular",spec:"55° × 4\" × 35°",desc:"Sharper backend for more defined direction change"}]},
+  {name:"Max Thrill Hybrid",series:"Max Thrill Series",oil:"light",rg:"2.57",diff:".042",intDiff:"—",core:"Halogen Symmetric",cover:"Turmoil XP3 Hybrid",finish:"5000 Grit LSP",desc:"An upgraded, stronger version of the Top Thrill Hybrid. Designed for bowlers who need a step up in performance on dry lanes without sacrificing control. Great for developing bowlers and experienced players on lighter conditions.",layouts:[{name:"Control",spec:"65° × 5\" × 50°",desc:"Smooth, controllable shape for dry lanes"},{name:"Angular",spec:"55° × 4\" × 35°",desc:"More angle and flip on friction"}]},
+  {name:"Silver Sniper",series:"Sniper Series",oil:"light",rg:"2.61",diff:".028",intDiff:"—",core:"Dominion Symmetric",cover:"TruShot Polythane",finish:"5500 Grit LSP",desc:"Featuring Motiv's TruShot Polythane technology, the Silver Sniper combines urethane-like control with reactive resin backend punch. Ideal for dry and sport conditions where other balls overreact.",layouts:[{name:"Smooth Arc",spec:"75° × 5\" × 60°",desc:"Maximum smooth arc for dry/sport conditions"},{name:"Moderate Shape",spec:"65° × 4.5\" × 50°",desc:"Slightly more defined backend motion"}]},
+  {name:"Ascend",series:"Ascend Series",oil:"light",rg:"2.60",diff:".036",intDiff:"—",core:"Flux V2 Symmetric",cover:"Vitality Pearl Reactive",finish:"5000 Grit LSP",desc:"Entry-level reactive resin ball for developing bowlers or as a step-down from the top line. The Flux V2 core offers slightly boosted RG and differential for smoother handling of light oil conditions.",layouts:[{name:"Beginner",spec:"65° × 4.5\" × 45°",desc:"Easy, predictable shape for learning the game"},{name:"More Hook",spec:"55° × 4\" × 35°",desc:"Opens up more motion as your game develops"}]},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let selLayout = "pin-up";
+let selOil = "short";
+let oilFilter = "all";
+let searchQ = "";
+
+// ── PAGE SWITCHER ─────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='balls') renderBalls();
+}
+
+// ── ADVISOR ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('#layoutGroup .pill').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('#layoutGroup .pill').forEach(b=>b.classList.remove('on-a'));
+    btn.classList.add('on-a'); selLayout=btn.dataset.val; update();
+  });
+});
+document.querySelectorAll('#oilGroup .pill').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('#oilGroup .pill').forEach(b=>b.classList.remove('on-b'));
+    btn.classList.add('on-b'); selOil=btn.dataset.val; update();
+  });
+});
+
+function update(){
+  const ld=layouts[selLayout], op=oils[selOil], match=ld.match[selOil], m=ld.m;
+  const badge=document.getElementById('badge');
+  if(match==='good'){badge.className='badge badge-g';badge.textContent='Excellent Match';}
+  if(match==='ok') {badge.className='badge badge-o';badge.textContent='Moderate Match';}
+  if(match==='bad'){badge.className='badge badge-b';badge.textContent='Poor Match';}
+  document.getElementById('rTitle').textContent=`${ld.label} — ${op.label}`;
+  document.getElementById('rSub').textContent=ld.sub;
+  document.getElementById('sPAP').textContent=ld.pinPAP;
+  document.getElementById('sVAL').textContent=ld.val;
+  document.getElementById('sFlare').textContent=ld.flare;
+  document.getElementById('sShape').textContent=ld.shape;
+  setM('mL','mLb',m.length,'var(--blue)');
+  setM('mR','mRb',m.reaction,'var(--accent)');
+  setM('mF','mFb',m.forgive,'var(--green)');
+  setM('mH','mHb',m.hook,'var(--red)');
+  document.getElementById('tip').innerHTML=`<strong>${ld.label} on ${op.label}:</strong> ${ld.tips[selOil]}`;
+  drawBall(); drawLane();
+}
+
+function setM(id,bid,val,col){
+  document.getElementById(id).textContent=`${val}/10`;
+  const b=document.getElementById(bid);
+  b.style.width=`${val*10}%`; b.style.background=col;
+}
+
+// ── BALL CANVAS ───────────────────────────────────────────────────────────────
+function drawBall(){
+  const canvas=document.getElementById('bc');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,r=W/2-8;
+  ctx.clearRect(0,0,W,H);
+  const grad=ctx.createRadialGradient(cx-r*.3,cy-r*.3,r*.08,cx,cy,r);
+  grad.addColorStop(0,'#252535');grad.addColorStop(.6,'#12121e');grad.addColorStop(1,'#08080f');
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
+  const ld=layouts[selLayout];
+  const rings={pinu:4,"pin-down":2,leverage:6,control:2,strong:6}[selLayout]||4;
+  ctx.save();ctx.globalAlpha=.1;
+  for(let i=1;i<=rings;i++){
+    ctx.beginPath();ctx.ellipse(cx,cy+8,r*.28+i*11,r*.1+i*4.5,Math.PI*.15,0,Math.PI*2);
+    ctx.strokeStyle='#4b7be8';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  ctx.restore();
+  const p2=(a,d)=>{const rad=(a-90)*Math.PI/180;return{x:cx+Math.cos(rad)*r*d,y:cy+Math.sin(rad)*r*d};};
+  const h1=p2(70,.35),h2=p2(110,.35),th=p2(90,.56);
+  const hole=(x,y,sz,c)=>{
+    ctx.beginPath();ctx.arc(x,y,sz,0,Math.PI*2);
+    const hg=ctx.createRadialGradient(x-2,y-2,1,x,y,sz);
+    hg.addColorStop(0,'#2a2a3a');hg.addColorStop(1,'#000');
+    ctx.fillStyle=hg;ctx.fill();ctx.strokeStyle=c;ctx.lineWidth=1.5;ctx.stroke();
+  };
+  hole(h1.x,h1.y,10,'rgba(255,255,255,.25)');
+  hole(h2.x,h2.y,10,'rgba(255,255,255,.25)');
+  hole(th.x,th.y,8,'rgba(255,255,255,.25)');
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='8px DM Sans';ctx.textAlign='center';
+  ctx.fillText('M',h1.x,h1.y+3);ctx.fillText('R',h2.x,h2.y+3);ctx.fillText('T',th.x,th.y+3);
+  const pt=(a,d,col,lbl,sz=7)=>{
+    const p=p2(a,d);
+    ctx.beginPath();ctx.arc(p.x,p.y,sz,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+    ctx.fillStyle='#fff';ctx.font=`bold ${sz+2}px DM Sans`;ctx.textAlign='center';
+    ctx.fillText(lbl,p.x,p.y+(sz-2));
+  };
+  pt(ld.pa,ld.pd,'#e8b84b','P');
+  pt(ld.ca,ld.cd,'#4b7be8','C',6);
+  pt(ld.ma,ld.md,'#4be87a','M',6);
+  pt(5,.65,'#e84b6e','A',6);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=2;ctx.stroke();
+}
+
+// ── LANE CANVAS ───────────────────────────────────────────────────────────────
+function drawLane(){
+  const canvas=document.getElementById('lc');
+  const W=canvas.offsetWidth||320; canvas.width=W; const H=150;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const op=oils[selOil], oE=H*op.len;
+  for(let i=0;i<39;i++){ctx.fillStyle=i%2===0?'#1a1a28':'#181826';ctx.fillRect(i*W/39,0,W/39,H);}
+  const og=ctx.createLinearGradient(0,0,0,oE);
+  og.addColorStop(0,op.color+'28');og.addColorStop(1,op.color+'06');
+  ctx.fillStyle=og;ctx.fillRect(W*.1,0,W*.8,oE);
+  ctx.beginPath();ctx.moveTo(W*.1,oE);ctx.lineTo(W*.9,oE);
+  ctx.strokeStyle=op.color;ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=op.color;ctx.font='bold 9px DM Sans';ctx.textAlign='right';
+  ctx.fillText('Oil End',W*.9-4,oE-4);
+  const paths={
+    "pin-up":{s:W*.62,m:W*.52,e:W*.43,c:'#e8b84b'},
+    "pin-down":{s:W*.60,m:W*.56,e:W*.37,c:'#4b7be8'},
+    "leverage":{s:W*.58,m:W*.54,e:W*.28,c:'#e84b6e'},
+    "control":{s:W*.63,m:W*.52,e:W*.47,c:'#4be87a'},
+    "strong":{s:W*.57,m:W*.54,e:W*.25,c:'#a64be8'}
+  };
+  const path=paths[selLayout];
+  ctx.save();ctx.shadowColor=path.c;ctx.shadowBlur=8;
+  ctx.beginPath();ctx.moveTo(path.s,0);ctx.bezierCurveTo(path.m,H*.5,path.m*.95,H*.75,path.e,H);
+  ctx.strokeStyle=path.c;ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.arc(path.e,H-4,4,0,Math.PI*2);ctx.fillStyle=path.c;ctx.fill();
+  const ay=H*.22;
+  for(let i=0;i<7;i++){
+    const ax=W*.2+i*(W*.6/6);
+    ctx.beginPath();ctx.moveTo(ax,ay+4);ctx.lineTo(ax-3,ay+9);ctx.lineTo(ax+3,ay+9);ctx.closePath();
+    ctx.fillStyle=i===3?'rgba(255,255,255,.45)':'rgba(255,255,255,.1)';ctx.fill();
+  }
+  ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='8px DM Sans';ctx.textAlign='center';
+  ctx.fillText('FOUL LINE',W*.5,H-10);
+}
+
+// ── MODAL LANE VISUALIZATION ──────────────────────────────────────────────────
+// Ball motion profile per oil category: {startX, midX, endX} as fraction of W
+// Also encodes breakpoint shape (how angular the hook is)
+const oilMotionProfiles = {
+  heavy: {
+    short:    {s:.60, m:.54, e:.42, snap:.3},
+    'med-heavy':{s:.61, m:.53, e:.40, snap:.35},
+    medium:   {s:.62, m:.52, e:.39, snap:.4},
+    light:    {s:.63, m:.51, e:.38, snap:.45}
+  },
+  'med-heavy': {
+    short:    {s:.60, m:.55, e:.44, snap:.25},
+    'med-heavy':{s:.61, m:.53, e:.40, snap:.35},
+    medium:   {s:.62, m:.52, e:.38, snap:.4},
+    light:    {s:.63, m:.51, e:.36, snap:.45}
+  },
+  medium: {
+    short:    {s:.61, m:.55, e:.47, snap:.2},
+    'med-heavy':{s:.62, m:.54, e:.44, snap:.28},
+    medium:   {s:.62, m:.53, e:.41, snap:.35},
+    light:    {s:.63, m:.51, e:.38, snap:.42}
+  },
+  light: {
+    short:    {s:.62, m:.56, e:.50, snap:.15},
+    'med-heavy':{s:.63, m:.55, e:.47, snap:.2},
+    medium:   {s:.63, m:.54, e:.44, snap:.28},
+    light:    {s:.63, m:.52, e:.40, snap:.38}
+  }
+};
+
+// Match quality per ball oil type vs oil pattern
+const ballOilMatch = {
+  heavy:      {short:'bad',  'med-heavy':'ok',  medium:'ok',  light:'bad'},
+  'med-heavy':{short:'ok',   'med-heavy':'good',medium:'good',light:'ok'},
+  medium:     {short:'good', 'med-heavy':'ok',  medium:'good',light:'ok'},
+  light:      {short:'good', 'med-heavy':'ok',  medium:'ok',  light:'good'}
+};
+
+const oilDefs = {
+  short:     {label:'Short 33–37ft', len:.38, color:'#4b7be8'},
+  'med-heavy':{label:'Med-Heavy',    len:.58, color:'#4be87a'},
+  medium:    {label:'Medium 38–42ft',len:.62, color:'#e8b84b'},
+  long:      {label:'Long 43–47ft',  len:.78, color:'#e8b84b'},
+  sport:     {label:'Sport / Flat',  len:.52, color:'#e84b6e'},
+  light:     {label:'Light / Dry',   len:.32, color:'#e84b6e'}
+};
+
+// Map ball oil category to motion style (affects curve shape in drawModalLane)
+const ballMotionStyle = {
+  heavy:      {aggressiveness:.9, breakSharpness:.7},
+  'med-heavy':{aggressiveness:.7, breakSharpness:.75},
+  medium:     {aggressiveness:.5, breakSharpness:.65},
+  light:      {aggressiveness:.3, breakSharpness:.55}
+};
+
+function drawModalLane(canvasId, oilKey, ballOilType, matchQuality) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 160;
+  canvas.width = W;
+  const H = 90;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Oil pattern defs for modal (only 4 patterns used in modal grid)
+  const modalOils = {
+    short:  {len:.38, color:'#4b7be8'},
+    medium: {len:.60, color:'#4be87a'},
+    long:   {len:.78, color:'#e8b84b'},
+    sport:  {len:.52, color:'#e84b6e'}
+  };
+  const op = modalOils[oilKey];
+
+  // Draw boards
+  for (let i = 0; i < 39; i++) {
+    ctx.fillStyle = i % 2 === 0 ? '#1a1a28' : '#181826';
+    ctx.fillRect(i * W / 39, 0, W / 39, H);
+  }
+
+  // Oil zone
+  const oilEnd = H * op.len;
+  const og = ctx.createLinearGradient(0, 0, 0, oilEnd);
+  og.addColorStop(0, op.color + '30');
+  og.addColorStop(1, op.color + '06');
+  ctx.fillStyle = og;
+  ctx.fillRect(W * .08, 0, W * .84, oilEnd);
+
+  // Oil end dashed line
+  ctx.beginPath();
+  ctx.moveTo(W * .08, oilEnd);
+  ctx.lineTo(W * .92, oilEnd);
+  ctx.strokeStyle = op.color;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Ball motion path — adapt based on ball strength + oil length
+  const style = ballMotionStyle[ballOilType] || ballMotionStyle.medium;
+
+  // The heavier the oil, the earlier the ball hooks for heavy balls
+  // The lighter the oil, the later the ball hooks for light balls
+  const oilLenFactor = op.len; // 0.38 short → 0.78 long
+
+  let startX, hookX, endX;
+
+  if (matchQuality === 'bad') {
+    // Bad match: show what goes wrong
+    if (ballOilType === 'heavy' && (oilKey === 'short' || oilKey === 'sport')) {
+      // Too strong for dry — hooks too early, loses energy
+      startX = W * .60; hookX = W * .58; endX = W * .50;
+    } else if (ballOilType === 'light' && (oilKey === 'long')) {
+      // Too weak for oil — pushes through, barely hooks
+      startX = W * .63; hookX = W * .57; endX = W * .52;
+    } else {
+      startX = W * .61; hookX = W * .54; endX = W * .45;
+    }
+  } else {
+    // Normal motion path
+    const aggr = style.aggressiveness;
+    const sharpness = style.breakSharpness;
+    startX = W * (.58 + (1 - aggr) * .06);
+    hookX = W * (.52 + (1 - aggr) * .05 + oilLenFactor * .02);
+    endX = W * (.28 + (1 - sharpness) * .18 + (1 - aggr) * .08);
+  }
+
+  // Draw path with glow
+  const pathColor = matchQuality === 'good' ? '#4be87a' : matchQuality === 'ok' ? '#e8b84b' : '#e84b6e';
+  ctx.save();
+  ctx.shadowColor = pathColor;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(startX, 2);
+
+  if (matchQuality === 'bad' && ballOilType === 'light' && oilKey === 'long') {
+    // Very slight hook, goes almost straight
+    ctx.bezierCurveTo(startX - W*.02, H*.4, hookX + W*.02, H*.7, endX, H - 3);
+  } else {
+    ctx.bezierCurveTo(hookX + W*.02, H * .45, hookX, H * .72, endX, H - 3);
+  }
+
+  ctx.strokeStyle = pathColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  // Pocket dot
+  ctx.beginPath();
+  ctx.arc(endX, H - 3, 3, 0, Math.PI * 2);
+  ctx.fillStyle = pathColor;
+  ctx.fill();
+
+  // Foul line strip
+  ctx.fillStyle = 'rgba(255,255,255,.08)';
+  ctx.fillRect(0, H - 5, W, 5);
+
+  // Early hook warning for bad matches
+  if (matchQuality === 'bad') {
+    ctx.fillStyle = 'rgba(232,75,110,.12)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#e84b6e';
+    ctx.font = `bold 8px DM Sans`;
+    ctx.textAlign = 'center';
+    const msg = (ballOilType === 'light' && oilKey === 'long') ? 'Weak finish' : 'Early hook';
+    ctx.fillText(msg, W / 2, H / 2 - 2);
+  }
+}
+
+function drawAllModalLanes(ballOilType) {
+  const oilKeys = ['short', 'medium', 'long', 'sport'];
+
+  // Map ball oil type to match quality per oil pattern
+  const matchMap = {
+    heavy:       {short:'bad',  medium:'ok',  long:'good', sport:'bad'},
+    'med-heavy': {short:'ok',   medium:'good',long:'ok',   sport:'ok'},
+    medium:      {short:'good', medium:'good',long:'ok',   sport:'good'},
+    light:       {short:'good', medium:'ok',  long:'bad',  sport:'good'}
+  };
+
+  const matches = matchMap[ballOilType] || matchMap.medium;
+
+  oilKeys.forEach(oilKey => {
+    const match = matches[oilKey];
+    const wrap = document.getElementById('olw-' + oilKey);
+    const badge = document.getElementById('olb-' + oilKey);
+
+    // Set border & badge
+    wrap.className = 'oil-lane-wrap';
+    if (match === 'good') { wrap.classList.add('best'); badge.className = 'oil-lane-badge olb-good'; badge.textContent = '✓ Best'; }
+    else if (match === 'ok') { wrap.classList.add('ok-match'); badge.className = 'oil-lane-badge olb-ok'; badge.textContent = '~ OK'; }
+    else { wrap.classList.add('bad-match'); badge.className = 'oil-lane-badge olb-bad'; badge.textContent = '✕ Avoid'; }
+
+    drawModalLane('olc-' + oilKey, oilKey, ballOilType, match);
+  });
+}
+function renderBalls(){
+  const list=document.getElementById('ballList');
+  const q=searchQ.toLowerCase();
+  const filtered=motivBalls.filter(b=>{
+    const oilOk=oilFilter==='all'||b.oil===oilFilter;
+    const qOk=!q||b.name.toLowerCase().includes(q)||b.core.toLowerCase().includes(q)||b.cover.toLowerCase().includes(q)||b.series.toLowerCase().includes(q);
+    return oilOk&&qOk;
+  });
+  list.innerHTML=filtered.length===0?'<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px">No balls match your search.</div>':
+    filtered.map((b,i)=>`
+    <div class="ball-item" onclick="openBall(${motivBalls.indexOf(b)})">
+      <div class="bi-row">
+        <div class="bi-name">${b.name}</div>
+        <div class="bi-oil ${oilClass(b.oil)}">${oilLabel(b.oil)}</div>
+      </div>
+      <div class="bi-series">${b.series}</div>
+      <div class="bi-specs" style="margin-top:6px">
+        <div class="bi-spec">RG <span>${b.rg}</span></div>
+        <div class="bi-spec">Diff <span>${b.diff}</span></div>
+        ${b.intDiff!=='—'?`<div class="bi-spec">Int <span>${b.intDiff}</span></div>`:''}
+        <div class="bi-spec">Core <span>${b.core.split(' ')[0]}</span></div>
+      </div>
+    </div>`).join('');
+}
+
+function oilClass(o){return{heavy:'oil-heavy','med-heavy':'oil-med-heavy',medium:'oil-medium',light:'oil-light'}[o]||'';}
+function oilLabel(o){return{heavy:'Heavy Oil','med-heavy':'Med-Heavy',medium:'Medium Oil',light:'Light/Dry'}[o]||o;}
+
+document.getElementById('searchBox').addEventListener('input',e=>{searchQ=e.target.value;renderBalls();});
+document.querySelectorAll('#filterRow .f-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('#filterRow .f-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); oilFilter=btn.dataset.oil; renderBalls();
+  });
+});
+
+function openBall(idx){
+  const b=motivBalls[idx];
+  document.getElementById('mName').textContent=b.name;
+  document.getElementById('mSeries').textContent=b.series;
+  document.getElementById('modalOilBadge').textContent=oilLabel(b.oil);
+  document.getElementById('modalOilBadge').className=`bi-oil ${oilClass(b.oil)}`;
+  document.getElementById('mRG').textContent=b.rg+'"';
+  document.getElementById('mDiff').textContent=b.diff;
+  document.getElementById('mIntDiff').textContent=b.intDiff;
+  document.getElementById('mCore').textContent=b.core;
+  document.getElementById('mCover').textContent=b.cover;
+  document.getElementById('mFinish').textContent=b.finish;
+  document.getElementById('mDesc').textContent=b.desc;
+  document.getElementById('mLayouts').innerHTML=b.layouts.map(l=>
+    `<div class="drill-rec"><strong>${l.name}:</strong> ${l.spec} — ${l.desc}</div>`
+  ).join('');
+  document.getElementById('modal').classList.add('open');
+  // Draw lane visuals after a short delay so canvas widths are resolved
+  setTimeout(()=>drawAllModalLanes(b.oil), 60);
+}
+
+document.getElementById('closeModal').addEventListener('click',()=>document.getElementById('modal').classList.remove('open'));
+document.getElementById('modalBg').addEventListener('click',()=>document.getElementById('modal').classList.remove('open'));
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+update();
+renderBalls();
+window.addEventListener('resize',()=>{drawLane();});
+</script>
+</body>
+</html>
